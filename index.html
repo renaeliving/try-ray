@@ -36,7 +36,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: px;
+      gap: 10px;
       position: sticky;
       top: 24px;
     }
@@ -44,7 +44,7 @@
     #ray-image-wrap {
       position: relative;
       width: 350px;
-      max-width: 0%;
+      max-width: 100%;
       border-radius: 24px;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
@@ -60,8 +60,8 @@
     }
 
     #ray-image {
-      width: 0%;
-      max-width: 0%;
+      width: 100%;
+      max-width: 100%;
       height: auto;
       display: block;
       border-radius: 24px;
@@ -80,22 +80,22 @@
       gap: 8px;
       font-size: 0.78rem;
       color: #cbd5e1;
-      padding: 6px px;
+      padding: 6px 10px;
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.06);
       border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
     .mic-dot {
-      width: px;
-      height: px;
+      width: 10px;
+      height: 10px;
       border-radius: 999px;
       background: #4b5563;
     }
 
     .mic-indicator.on .mic-dot {
       background: #22c55e;
-      box-shadow: 0 0 px rgba(34, 197, 94, 0.9);
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.9);
     }
 
     #ray-main {
@@ -106,7 +106,7 @@
 
     .panel {
       max-width: 720px;
-      width: 0%;
+      width: 100%;
       margin: 0 auto;
       background: var(--panel-bg);
       border-radius: 16px;
@@ -140,7 +140,7 @@
       background: #020617;
       border-radius: 8px;
       border: 1px solid #1f2937;
-      padding: px;
+      padding: 10px;
       color: var(--text-main);
       font-size: 0.9rem;
       box-sizing: border-box;
@@ -183,7 +183,7 @@
       background: rgba(255, 255, 255, 0.06);
       color: var(--text-main);
       border-radius: 999px;
-      padding: 4px px;
+      padding: 4px 10px;
       font-size: 0.72rem;
       cursor: pointer;
       white-space: nowrap;
@@ -202,16 +202,16 @@
       max-height: 420px;
       overflow-y: auto;
       margin-top: 12px;
-      padding: px;
+      padding: 10px;
       background: #020617;
       border: 1px solid #1f2937;
       border-radius: 12px;
     }
 
     .chat-message {
-      margin-bottom: px;
-      padding: px;
-      border-radius: px;
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 10px;
       line-height: 1.5;
       border: 1px solid #1f2937;
       overflow-x: auto;
