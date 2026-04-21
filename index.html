@@ -996,34 +996,51 @@
       }
     }
 
-    async function stopConversation() {
-      conversationActive = false;
-      updateOpenMicIndicator();
-      chatStatusEl.textContent = "";
-      setVoiceState("idle", "");
+   async function stopConversation() {
+  conversationActive = false;
+  updateOpenMicIndicator();
 
-      if (monitorFrame) {
-        cancelAnimationFrame(monitorFrame);
-        monitorFrame = null;
-      }
+  if (currentReplyAudio) {
+    currentReplyAudio.pause();
+    currentReplyAudio.currentTime = 0;
+    currentReplyAudio = null;
+  }
 
-      if (mediaRecorder && mediaRecorder.state === "recording") {
-        stopSegmentRecorder({ discard: true });
-      }
+  if (currentReplyAudioUrl) {
+    URL.revokeObjectURL(currentReplyAudioUrl);
+    currentReplyAudioUrl = null;
+  }
 
-      if (mediaStream) {
-        mediaStream.getTracks().forEach((track) => track.stop());
-        mediaStream = null;
-      }
+  if (welcomeAudio) {
+    welcomeAudio.pause();
+    welcomeAudio.currentTime = 0;
+  }
 
-      if (audioContext) {
-        await audioContext.close();
-        audioContext = null;
-      }
+  chatStatusEl.textContent = "";
+  setVoiceState("idle", "");
 
-      analyser = null;
-      micSource = null;
-    }
+  if (monitorFrame) {
+    cancelAnimationFrame(monitorFrame);
+    monitorFrame = null;
+  }
+
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    stopSegmentRecorder({ discard: true });
+  }
+
+  if (mediaStream) {
+    mediaStream.getTracks().forEach((track) => track.stop());
+    mediaStream = null;
+  }
+
+  if (audioContext) {
+    await audioContext.close();
+    audioContext = null;
+  }
+
+  analyser = null;
+  micSource = null;
+}
 
     async function sendVoiceBlob(blob) {
       const formData = new FormData();
