@@ -376,8 +376,7 @@
       <div id="upgrade-panel" class="upload-panel" style="display:none;">
         <h2>Want deeper project insight?</h2>
         <p>
-          Upgrade to <strong>Ray Pro Monthly</strong> to unlock file uploads, schedule analysis, and a more personalized coaching experience.
-          Use coupon code <strong>B2PUpgrade</strong> to get <strong>$17 off your first Ray Pro Monthly purchase</strong>.
+          Upgrade to <strong>Ray Pro</strong> to unlock file uploads, schedule analysis, and a more personalized coaching experience.
           <a
             id="upgrade-link"
             href="https://www.projectpilot.ai/pricing-plans/list"
@@ -507,17 +506,24 @@
     const SPEAK_URL = `${BACKEND_BASE}/api/speak`;
     const PROJECTS_URL = `${BACKEND_BASE}/api/projects`;
 
-    const BASIC_INTRO_URL = "https://static.wixstatic.com/mp3/3cf059_170238a1a9ff43f1aa9b4a1b1a204d06.mp3";
-    const PRO_INTRO_URL = "https://static.wixstatic.com/mp3/3cf059_7e5830d423f94f9ebfb8b14b9fc112a5.mp3";
+    // REPLACE THESE 3 URLS WITH YOUR ACTUAL MP3 FILE URLS
+    const TRY_INTRO_URL = "PASTE_TRY_RAY_MP3_URL_HERE";
+    const COACH_INTRO_URL = "PASTE_RAY_COACH_MP3_URL_HERE";
+    const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
 
     const PROJECT_NAMES_KEY = "rayProjectNames";
     const LAST_PROJECT_KEY = "rayLastProjectName";
     const NEW_PROJECT_SENTINEL = "__new__";
 
+    const PLAN_PRO_MONTHLY = "Ray Pro Monthly";
+    const PLAN_PRO_ANNUAL = "Ray Pro Annual";
+    const PLAN_COACH = "Ray Coach";
+    const PLAN_TEMP_PRO = "Temp Ray Pro";
+
     let wixPlanName = "";
-    const RAY_COACH_PLAN_NAMES = ["Ray Coach", "Temp Ray Access - Coach"];
-    const uploadAllowedPlans = ["Ray Pro", "Ray Pro Annual", "Temp Ray Access - Pro"];
-    const PRO_PLAN_NAMES = ["Ray Pro", "Ray Pro Annual", "Temp Ray Access - Pro"];
+
+    const PRO_PLAN_NAMES = [PLAN_PRO_MONTHLY, PLAN_PRO_ANNUAL, PLAN_TEMP_PRO];
+    const RAY_COACH_PLAN_NAMES = [PLAN_COACH];
 
     const projectNameInput = document.getElementById("project-name");
     const newProjectRowEl = document.getElementById("new-project-row");
@@ -554,6 +560,7 @@
     let currentReplyAudioUrl = null;
     let welcomeAudio = null;
     let isPlayingWelcome = false;
+    let hasResolvedPlan = false;
 
     let mediaStream = null;
     let mediaRecorder = null;
@@ -764,10 +771,14 @@
     }
 
     function getIntroUrlForPlan(planName) {
-      return PRO_PLAN_NAMES.includes(planName) ? PRO_INTRO_URL : BASIC_INTRO_URL;
+      if (PRO_PLAN_NAMES.includes(planName)) return PRO_INTRO_URL;
+      if (RAY_COACH_PLAN_NAMES.includes(planName)) return COACH_INTRO_URL;
+      return TRY_INTRO_URL;
     }
 
     function maybeAutoPlayWelcome() {
+      if (!hasResolvedPlan) return;
+
       const welcomeKey = "rayWelcomePlayed";
       const alreadyPlayed = localStorage.getItem(welcomeKey) === "true";
 
@@ -781,7 +792,7 @@
       try {
         const introUrl = getIntroUrlForPlan(wixPlanName);
 
-        if (!introUrl) return;
+        if (!introUrl || introUrl.includes("PASTE_")) return;
 
         stopReplyAudio();
 
@@ -996,7 +1007,7 @@
     }
 
     function applyUploadAccess(planName) {
-      const hasUploadAccess = uploadAllowedPlans.includes(planName);
+      const hasUploadAccess = PRO_PLAN_NAMES.includes(planName);
       const isCoachPlan = RAY_COACH_PLAN_NAMES.includes(planName);
 
       if (hasUploadAccess) {
@@ -1005,9 +1016,9 @@
         fileInput.style.opacity = "1";
         analyzeBtn.style.opacity = "1";
         uploadLockedMessageEl.style.display = "none";
-        if (!statusEl.textContent.includes("Uploading") && !statusEl.textContent.includes("Schedule uploaded")) {
-          statusEl.textContent = "";
-        }
+        statusEl.textContent = "";
+        if (upgradePanelEl) upgradePanelEl.style.display = "none";
+        if (uploadPanelEl) uploadPanelEl.style.display = "";
         return;
       }
 
@@ -1019,14 +1030,20 @@
         analyzeBtn.style.opacity = "0.65";
         uploadLockedMessageEl.style.display = "";
         statusEl.innerHTML = `Upgrade to <a href="https://www.projectpilot.ai/pricing-plans/list" target="_blank" rel="noopener noreferrer" style="color:#38bdf8; text-decoration:underline;">Ray Pro</a> to access schedule uploads and analysis.`;
+        if (upgradePanelEl) upgradePanelEl.style.display = "none";
+        if (uploadPanelEl) uploadPanelEl.style.display = "";
         return;
       }
 
-      fileInput.disabled = false;
-      analyzeBtn.disabled = false;
-      fileInput.style.opacity = "1";
-      analyzeBtn.style.opacity = "1";
-      uploadLockedMessageEl.style.display = "none";
+      fileInput.disabled = true;
+      analyzeBtn.disabled = true;
+      fileInput.value = "";
+      fileInput.style.opacity = "0.65";
+      analyzeBtn.style.opacity = "0.65";
+      uploadLockedMessageEl.style.display = "";
+      statusEl.innerHTML = `Upgrade to <a href="https://www.projectpilot.ai/pricing-plans/list" target="_blank" rel="noopener noreferrer" style="color:#38bdf8; text-decoration:underline;">Ray Pro</a> to access schedule uploads and analysis.`;
+      if (upgradePanelEl) upgradePanelEl.style.display = "";
+      if (uploadPanelEl) uploadPanelEl.style.display = "";
     }
 
     async function sendChatMessage() {
@@ -1350,19 +1367,13 @@
 
     window.addEventListener("message", (event) => {
       const data = event.data || {};
-      if (!data.planName) return;
+      if (typeof data.planName === "undefined") return;
 
-      wixPlanName = data.planName;
+      wixPlanName = data.planName || "";
+      hasResolvedPlan = true;
 
       applyUploadAccess(wixPlanName);
-
-      if (uploadPanelEl) {
-        uploadPanelEl.style.display = "";
-      }
-
-      if (upgradePanelEl) {
-        upgradePanelEl.style.display = "none";
-      }
+      maybeAutoPlayWelcome();
     });
 
     function initializePage() {
@@ -1387,7 +1398,7 @@
     newProjectNameInput.addEventListener("input", updateProjectContextStatus);
 
     analyzeBtn.addEventListener("click", async () => {
-      if (!uploadAllowedPlans.includes(wixPlanName)) {
+      if (!PRO_PLAN_NAMES.includes(wixPlanName)) {
         statusEl.innerHTML = `Upgrade to <a href="https://www.projectpilot.ai/pricing-plans/list" target="_blank" rel="noopener noreferrer" style="color:#38bdf8; text-decoration:underline;">Ray Pro</a> to access schedule uploads and analysis.`;
         return;
       }
@@ -1478,7 +1489,6 @@
     });
 
     initializePage();
-    maybeAutoPlayWelcome();
   </script>
 </body>
 </html>
