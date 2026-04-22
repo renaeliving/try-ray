@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Ray – Your AI Project Coach</title>
+  <title>Try Ray – Your AI Project Coach</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -104,7 +104,7 @@
       gap: 18px;
     }
 
-    .upload-panel {
+    .panel {
       max-width: 850px;
       width: 100%;
       margin: 0 auto;
@@ -117,19 +117,19 @@
       box-sizing: border-box;
     }
 
-    .upload-panel h2 {
+    .panel h2 {
       margin: 0 0 4px;
       font-size: 1.1rem;
       color: #f9fafb;
     }
 
-    .upload-panel p {
+    .panel p {
       margin: 0 0 10px;
       color: #9ca3af;
       font-size: 0.85rem;
     }
 
-    .upload-row {
+    .row {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
@@ -152,7 +152,7 @@
       box-sizing: border-box;
     }
 
-    .upload-btn,
+    .btn,
     .voice-btn {
       border: none;
       border-radius: 999px;
@@ -164,19 +164,19 @@
       white-space: nowrap;
     }
 
-    .voice-btn.secondary,
-    .upload-btn.secondary {
+    .btn.secondary,
+    .voice-btn.secondary {
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.16);
     }
 
-    .upload-btn:disabled,
+    .btn:disabled,
     .voice-btn:disabled {
       opacity: 0.6;
       cursor: default;
     }
 
-    .tiny-chat-btn {
+    .tiny-btn {
       border: 1px solid rgba(255, 255, 255, 0.16);
       background: rgba(255, 255, 255, 0.06);
       color: #e5e7eb;
@@ -188,16 +188,11 @@
     }
 
     #upload-status,
-    #chat-status {
+    #chat-status,
+    #project-context-status,
+    #try-ray-status {
       font-size: 0.8rem;
       color: #9ca3af;
-      min-height: 1.2em;
-    }
-
-    #project-context-status {
-      margin-top: 8px;
-      font-size: 0.9rem;
-      color: #94a3b8;
       min-height: 1.2em;
     }
 
@@ -245,6 +240,18 @@
     .markdown-content pre { background: #020617; border: 1px solid #334155; border-radius: 10px; padding: 10px; overflow-x: auto; }
     .markdown-content a { color: #38bdf8; text-decoration: underline; }
 
+    #plans-footer {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+      padding-bottom: 12px;
+    }
+
+    #plans-footer a {
+      color: #38bdf8;
+      text-decoration: underline;
+    }
+
     @media (max-width: 900px) {
       #page-root {
         grid-template-columns: 1fr;
@@ -273,7 +280,7 @@
 
       <div id="voice-state"></div>
 
-      <button id="replay-welcome-btn" class="upload-btn secondary" type="button">Replay Welcome</button>
+      <button id="replay-welcome-btn" class="btn secondary" type="button">Replay Welcome</button>
 
       <div id="open-mic-indicator" class="mic-indicator">
         <span class="mic-dot"></span>
@@ -282,66 +289,66 @@
     </div>
 
     <div id="ray-main">
-      <section class="upload-panel">
+      <section class="panel">
         <h2>Project Menu</h2>
         <p>
-          Select an existing project or choose <strong>Add new project...</strong> to create one.
-          Leave it blank if you want general project management coaching.
+          Enter a project name to keep each conversation organized. You can add as many projects as you want and switch between them anytime.
         </p>
 
-        <div class="upload-row">
+        <div class="row">
           <select id="project-name">
             <option value="">Select a project</option>
             <option value="__new__">Add new project...</option>
           </select>
         </div>
 
-        <div class="upload-row" id="new-project-row" style="display:none;">
+        <div class="row" id="new-project-row" style="display:none;">
           <input type="text" id="new-project-name" placeholder="Enter new project name" />
         </div>
 
         <div id="project-context-status"></div>
       </section>
 
-      <section class="upload-panel">
+      <section class="panel">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px; flex-wrap:wrap;">
           <div style="min-width:240px; flex:1;">
-            <h2>Chat with Ray</h2>
+            <h2>Try Ray</h2>
             <p>
-              Ask Ray about risks, issues, milestones, planning, priorities, and next steps.
+              Ask Ray about risks, issues, milestones, planning, priorities, and next steps. Try Ray includes up to 30 conversations.
             </p>
           </div>
 
           <div style="display:flex; gap:6px; align-items:center; flex-shrink:0;">
-            <button id="clear-chat-btn" class="tiny-chat-btn" type="button">Clear Chat</button>
-            <button id="download-chat-btn" class="tiny-chat-btn" type="button">Download</button>
+            <button id="clear-chat-btn" class="tiny-btn" type="button">Clear Chat</button>
+            <button id="download-chat-btn" class="tiny-btn" type="button">Download</button>
           </div>
         </div>
 
-        <div class="upload-row">
+        <div class="row">
           <input type="text" id="chat-input" placeholder="Ask Ray a question..." />
-          <button id="send-chat-btn" class="upload-btn" type="button">Send Text</button>
+          <button id="send-chat-btn" class="btn" type="button">Send Text</button>
           <button id="begin-btn" class="voice-btn" type="button">Begin Conversation</button>
           <button id="pause-ray-btn" class="voice-btn secondary" type="button">Pause Ray</button>
           <button id="stop-conversation-btn" class="voice-btn secondary" type="button">Mic Off</button>
         </div>
 
         <div id="chat-status"></div>
+        <div id="try-ray-status"></div>
         <div id="chat-history"></div>
       </section>
 
-      <section class="upload-panel" id="upload-panel">
+      <section class="panel" id="upload-panel">
         <h2>Upload your project schedule as a CSV</h2>
         <p>
-          Ray can analyze your schedule in detail and highlight risks, identify issues, and recommend specific actions to keep your project on track.
+          Schedule uploads and analysis are available with Ray Pro.
         </p>
 
-        <div class="upload-row">
-          <input type="file" id="schedule-file" accept=".csv" />
-          <button id="analyze-btn" class="upload-btn" type="button">Analyze schedule</button>
+        <div class="row">
+          <input type="file" id="schedule-file" accept=".csv" disabled />
+          <button id="analyze-btn" class="btn" type="button" disabled>Analyze schedule</button>
         </div>
 
-        <div id="upload-locked-message" style="display:none; margin:6px 0 10px; font-size:0.85rem; color:#cbd5e1;">
+        <div id="upload-locked-message" style="margin:6px 0 10px; font-size:0.85rem; color:#cbd5e1;">
           Upgrade to
           <a
             href="https://www.projectpilot.ai/pricing-plans/list"
@@ -373,19 +380,8 @@
         <div id="upload-status"></div>
       </section>
 
-      <div id="upgrade-panel" class="upload-panel" style="display:none;">
-        <h2>Want deeper project insight?</h2>
-        <p>
-          Upgrade to <strong>Ray Pro Monthly</strong> to unlock file uploads, schedule analysis, and a more personalized coaching experience.
-          Use coupon code <strong>B2PUpgrade</strong> to get <strong>$17 off your first Ray Pro Monthly purchase</strong>.
-          <a
-            id="upgrade-link"
-            href="https://www.projectpilot.ai/pricing-plans/list"
-            target="_blank"
-            rel="noopener noreferrer"
-            style="color:#38bdf8;"
-          >Explore plans and upgrade</a>
-        </p>
+      <div id="plans-footer">
+        Ready for more? <a href="https://www.projectpilot.ai/pricing-plans/list" target="_blank" rel="noopener noreferrer">View plans</a>
       </div>
     </div>
   </div>
@@ -496,29 +492,26 @@
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
-    function getWixUserId() {
-      return localStorage.getItem("wixMemberId") || "";
+    function getTryRayUserId() {
+      let id = localStorage.getItem("tryRayUserId");
+      if (!id) {
+        id = "tryray-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem("tryRayUserId", id);
+      }
+      return id;
     }
 
     const BACKEND_BASE = "https://projectpilot-backend-zkad.onrender.com";
-    const UPLOAD_URL = `${BACKEND_BASE}/api/upload-schedule`;
-    const CHAT_URL = `${BACKEND_BASE}/api/chat`;
-    const VOICE_CHAT_URL = `${BACKEND_BASE}/api/voice-chat`;
+    const TRY_RAY_CHAT_URL = `${BACKEND_BASE}/api/try-ray`;
+    const TRY_RAY_VOICE_URL = `${BACKEND_BASE}/api/try-ray-voice`;
     const SPEAK_URL = `${BACKEND_BASE}/api/speak`;
-    const PROJECTS_URL = `${BACKEND_BASE}/api/projects`;
 
-const TRY_INTRO_URL = "PASTE_TRY_RAY_MP3_URL_HERE";
-const COACH_INTRO_URL = "PASTE_RAY_COACH_MP3_URL_HERE";
-const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
+    const TRY_INTRO_URL = "PASTE_TRY_RAY_MP3_URL_HERE";
+    const TRY_RAY_LIMIT = 30;
 
-    const PROJECT_NAMES_KEY = "rayProjectNames";
-    const LAST_PROJECT_KEY = "rayLastProjectName";
+    const PROJECT_NAMES_KEY = "tryRayProjectNames";
+    const LAST_PROJECT_KEY = "tryRayLastProjectName";
     const NEW_PROJECT_SENTINEL = "__new__";
-
-    let wixPlanName = "";
-    const RAY_COACH_PLAN_NAMES = ["Ray Coach", "Temp Ray Access - Coach"];
-    const uploadAllowedPlans = ["Ray Pro", "Ray Pro Annual", "Temp Ray Access - Pro"];
-    const PRO_PLAN_NAMES = ["Ray Pro", "Ray Pro Annual", "Temp Ray Access - Pro"];
 
     const projectNameInput = document.getElementById("project-name");
     const newProjectRowEl = document.getElementById("new-project-row");
@@ -528,9 +521,6 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
     const fileInput = document.getElementById("schedule-file");
     const analyzeBtn = document.getElementById("analyze-btn");
     const statusEl = document.getElementById("upload-status");
-    const uploadPanelEl = document.getElementById("upload-panel");
-    const uploadLockedMessageEl = document.getElementById("upload-locked-message");
-    const upgradePanelEl = document.getElementById("upgrade-panel");
     const csvFormatHelpBtn = document.getElementById("csv-format-help-btn");
     const csvFormatModal = document.getElementById("csv-format-modal");
     const closeCsvFormatModalBtn = document.getElementById("close-csv-format-modal");
@@ -540,6 +530,7 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
     const sendChatBtn = document.getElementById("send-chat-btn");
     const downloadChatBtn = document.getElementById("download-chat-btn");
     const chatStatusEl = document.getElementById("chat-status");
+    const tryRayStatusEl = document.getElementById("try-ray-status");
     const clearChatBtn = document.getElementById("clear-chat-btn");
 
     const replayWelcomeBtn = document.getElementById("replay-welcome-btn");
@@ -571,6 +562,7 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
     let discardCurrentRecording = false;
     let lastSpeechTime = 0;
     let listeningResumeAt = 0;
+    let remainingQuestions = TRY_RAY_LIMIT;
 
     const VOLUME_THRESHOLD = 0.035;
     const SILENCE_MS = 1500;
@@ -616,6 +608,14 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
       openMicTextEl.textContent = conversationActive ? "Open Mic On" : "Open Mic Off";
       beginBtn.disabled = conversationActive;
       stopConversationBtn.disabled = !conversationActive;
+    }
+
+    function updateTryRayStatus() {
+      if (remainingQuestions <= 0) {
+        tryRayStatusEl.innerHTML = `You’ve reached the ${TRY_RAY_LIMIT} conversation limit for Try Ray. <a href="https://www.projectpilot.ai/pricing-plans/list" target="_blank" rel="noopener noreferrer" style="color:#38bdf8; text-decoration:underline;">View plans</a>.`;
+      } else {
+        tryRayStatusEl.textContent = `${remainingQuestions} of ${TRY_RAY_LIMIT} conversations remaining.`;
+      }
     }
 
     function stopReplyAudio() {
@@ -764,15 +764,12 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
       }
     }
 
-    function getIntroUrlForPlan(planName) {
-      return PRO_PLAN_NAMES.includes(planName) ? PRO_INTRO_URL : BASIC_INTRO_URL;
-    }
-
     function maybeAutoPlayWelcome() {
-      const welcomeKey = "rayWelcomePlayed";
+      const welcomeKey = "tryRayWelcomePlayed";
       const alreadyPlayed = localStorage.getItem(welcomeKey) === "true";
 
       if (alreadyPlayed) return;
+      if (!TRY_INTRO_URL || TRY_INTRO_URL.includes("PASTE_")) return;
 
       localStorage.setItem(welcomeKey, "true");
       replayWelcome();
@@ -780,9 +777,8 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
 
     function replayWelcome() {
       try {
-        const introUrl = getIntroUrlForPlan(wixPlanName);
-
-        if (!introUrl) return;
+        const introUrl = TRY_INTRO_URL;
+        if (!introUrl || introUrl.includes("PASTE_")) return;
 
         stopReplyAudio();
 
@@ -810,7 +806,6 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
           welcomeAudio.onerror = () => {
             if (pauseRayBtn) pauseRayBtn.textContent = "Pause Ray";
             isPlayingWelcome = false;
-            chatStatusEl.textContent = "";
             if (conversationActive) {
               setVoiceState("listening", "Open Mic on");
             } else {
@@ -889,37 +884,6 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
       renderProjectNameOptions();
     }
 
-    async function loadProjectsForUser() {
-      const currentUserId = getWixUserId();
-
-      if (!currentUserId) {
-        renderProjectNameOptions();
-        return;
-      }
-
-      try {
-        const res = await fetch(`${PROJECTS_URL}?userId=${encodeURIComponent(currentUserId)}`);
-        if (!res.ok) {
-          throw new Error(`Project load failed: ${res.status}`);
-        }
-
-        const data = await res.json();
-        const projectNames = Array.isArray(data.projects)
-          ? data.projects.map((p) => p.name).filter(Boolean)
-          : [];
-
-        if (projectNames.length) {
-          saveProjectNames(projectNames);
-          renderProjectNameOptions(projectNames);
-        } else {
-          renderProjectNameOptions();
-        }
-      } catch (err) {
-        console.error("Could not load project list:", err);
-        renderProjectNameOptions();
-      }
-    }
-
     function getSelectedProjectName() {
       const selected = projectNameInput.value.trim();
       if (selected === NEW_PROJECT_SENTINEL) {
@@ -975,7 +939,7 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
       }
 
       const transcript = [
-        "Ray Chat Export",
+        "Try Ray Chat Export",
         `Project: ${projectName}`,
         `Exported: ${new Date().toLocaleString()}`,
         "",
@@ -987,7 +951,7 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
 
       const a = document.createElement("a");
       a.href = url;
-      a.download = `ray-chat-${safeProjectName}-${timestamp}.txt`;
+      a.download = `try-ray-chat-${safeProjectName}-${timestamp}.txt`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -996,38 +960,29 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
       chatStatusEl.textContent = "Chat downloaded.";
     }
 
-    function applyUploadAccess(planName) {
-      const hasUploadAccess = uploadAllowedPlans.includes(planName);
-      const isCoachPlan = RAY_COACH_PLAN_NAMES.includes(planName);
+    async function sendTryRayMessage(message, voiceMode = false) {
+      const userId = getTryRayUserId();
 
-      if (hasUploadAccess) {
-        fileInput.disabled = false;
-        analyzeBtn.disabled = false;
-        fileInput.style.opacity = "1";
-        analyzeBtn.style.opacity = "1";
-        uploadLockedMessageEl.style.display = "none";
-        if (!statusEl.textContent.includes("Uploading") && !statusEl.textContent.includes("Schedule uploaded")) {
-          statusEl.textContent = "";
-        }
-        return;
+      const res = await fetch(TRY_RAY_CHAT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          message,
+          includeAudio: false,
+          voiceMode
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Try Ray failed");
+
+      if (typeof data.remainingQuestions === "number") {
+        remainingQuestions = data.remainingQuestions;
+        updateTryRayStatus();
       }
 
-      if (isCoachPlan) {
-        fileInput.disabled = true;
-        analyzeBtn.disabled = true;
-        fileInput.value = "";
-        fileInput.style.opacity = "0.65";
-        analyzeBtn.style.opacity = "0.65";
-        uploadLockedMessageEl.style.display = "";
-        statusEl.innerHTML = `Upgrade to <a href="https://www.projectpilot.ai/pricing-plans/list" target="_blank" rel="noopener noreferrer" style="color:#38bdf8; text-decoration:underline;">Ray Pro</a> to access schedule uploads and analysis.`;
-        return;
-      }
-
-      fileInput.disabled = false;
-      analyzeBtn.disabled = false;
-      fileInput.style.opacity = "1";
-      analyzeBtn.style.opacity = "1";
-      uploadLockedMessageEl.style.display = "none";
+      return data;
     }
 
     async function sendChatMessage() {
@@ -1035,6 +990,10 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
       const projectName = getSelectedProjectName();
 
       if (!message) return;
+      if (remainingQuestions <= 0) {
+        updateTryRayStatus();
+        return;
+      }
 
       stopReplyAudio();
       addChatMessage("user", message);
@@ -1044,30 +1003,12 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
       beginBtn.disabled = true;
 
       try {
-        const res = await fetch(CHAT_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            userId: getWixUserId() || "anonymous",
-            projectName,
-            message,
-            includeAudio: false,
-            voiceMode: true
-          })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || "Chat failed");
-        }
-
+        const data = await sendTryRayMessage(message, true);
         const reply = data.reply || "No response.";
         addChatMessage("assistant", reply);
         chatStatusEl.textContent = "";
-        speakReply(reply);
+
+        if (reply) speakReply(reply);
 
         if (projectName) {
           addProjectNameToSavedList(projectName);
@@ -1214,6 +1155,10 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
 
     async function beginConversation() {
       if (conversationActive) return;
+      if (remainingQuestions <= 0) {
+        updateTryRayStatus();
+        return;
+      }
 
       stopAllVoicePlayback();
 
@@ -1267,14 +1212,13 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
     async function sendVoiceBlob(blob) {
       const formData = new FormData();
       formData.append("audio", blob, "voice.webm");
-      formData.append("userId", getWixUserId() || "anonymous");
-      formData.append("projectName", getSelectedProjectName());
+      formData.append("userId", getTryRayUserId());
 
       sendChatBtn.disabled = true;
       beginBtn.disabled = true;
 
       try {
-        const res = await fetch(VOICE_CHAT_URL, {
+        const res = await fetch(TRY_RAY_VOICE_URL, {
           method: "POST",
           body: formData,
         });
@@ -1283,18 +1227,19 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
 
         if (!res.ok) {
           if ((data.error || "").toLowerCase().includes("could not transcribe audio")) {
-            chatStatusEl.textContent = conversationActive
-              ? "Open Mic on. Start speaking any time."
-              : "";
+            chatStatusEl.textContent = conversationActive ? "Open Mic on. Start speaking any time." : "";
             return;
           }
           throw new Error(data.error || "Voice chat failed");
         }
 
+        if (typeof data.remainingQuestions === "number") {
+          remainingQuestions = data.remainingQuestions;
+          updateTryRayStatus();
+        }
+
         if (!data.transcript && !data.reply) {
-          chatStatusEl.textContent = conversationActive
-            ? "Open Mic on. Start speaking any time."
-            : "";
+          chatStatusEl.textContent = conversationActive ? "Open Mic on. Start speaking any time." : "";
           return;
         }
 
@@ -1307,18 +1252,7 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
           chatStatusEl.textContent = "";
           speakReply(data.reply);
         } else {
-          chatStatusEl.textContent = conversationActive
-            ? "Open Mic on. Start speaking any time."
-            : "";
-        }
-
-        const projectName = getSelectedProjectName();
-        if (projectName) {
-          addProjectNameToSavedList(projectName);
-          localStorage.setItem(LAST_PROJECT_KEY, projectName);
-          renderProjectNameOptions();
-          projectNameInput.value = projectName;
-          syncProjectInputMode();
+          chatStatusEl.textContent = conversationActive ? "Open Mic on. Start speaking any time." : "";
         }
       } catch (err) {
         console.error(err);
@@ -1349,30 +1283,6 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
       }
     });
 
-    window.addEventListener("message", (event) => {
-      const data = event.data || {};
-      if (!data.planName) return;
-
-      wixPlanName = data.planName;
-
-      applyUploadAccess(wixPlanName);
-
-      if (uploadPanelEl) {
-        uploadPanelEl.style.display = "";
-      }
-
-      if (upgradePanelEl) {
-        upgradePanelEl.style.display = "none";
-      }
-    });
-
-    function initializePage() {
-      loadProjectsForUser().finally(() => {
-        syncProjectInputMode();
-      });
-      updateOpenMicIndicator();
-    }
-
     projectNameInput.addEventListener("change", () => {
       const selected = projectNameInput.value.trim();
 
@@ -1388,79 +1298,7 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
     newProjectNameInput.addEventListener("input", updateProjectContextStatus);
 
     analyzeBtn.addEventListener("click", async () => {
-      if (!uploadAllowedPlans.includes(wixPlanName)) {
-        statusEl.innerHTML = `Upgrade to <a href="https://www.projectpilot.ai/pricing-plans/list" target="_blank" rel="noopener noreferrer" style="color:#38bdf8; text-decoration:underline;">Ray Pro</a> to access schedule uploads and analysis.`;
-        return;
-      }
-
-      const file = fileInput.files[0];
-      const projectName = getSelectedProjectName();
-
-      if (!projectName) {
-        statusEl.textContent = "Please select a project or add a new one before uploading a schedule.";
-        return;
-      }
-
-      if (!file) {
-        statusEl.textContent = "Please choose a CSV file first.";
-        return;
-      }
-
-      await stopAllVoice();
-
-      const formData = new FormData();
-      formData.append("schedule", file);
-      formData.append("userId", getWixUserId() || "anonymous");
-      formData.append("projectName", projectName);
-
-      analyzeBtn.disabled = true;
-      statusEl.textContent = "Uploading and analyzing your schedule...";
-
-      try {
-        const res = await fetch(UPLOAD_URL, {
-          method: "POST",
-          body: formData,
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || "Upload failed");
-        }
-
-        if (data.error) {
-          statusEl.textContent = data.error;
-          return;
-        }
-
-        const uploadReply =
-          data.reply || data.analysis || "I reviewed your schedule, but no analysis text was returned.";
-
-        addChatMessage("assistant", uploadReply);
-
-        if (data.audioBase64) {
-          playAudioBase64(data.audioBase64);
-        } else {
-          speakReply(uploadReply);
-        }
-
-        statusEl.textContent = "Schedule uploaded and review added to chat.";
-
-        addProjectNameToSavedList(projectName);
-        localStorage.setItem(LAST_PROJECT_KEY, projectName);
-        renderProjectNameOptions();
-        projectNameInput.value = projectName;
-        syncProjectInputMode();
-
-        fileInput.value = "";
-        chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = "Something went wrong contacting the server. Please try again in a moment.";
-      } finally {
-        analyzeBtn.disabled = false;
-        applyUploadAccess(wixPlanName);
-      }
+      statusEl.innerHTML = `Upgrade to <a href="https://www.projectpilot.ai/pricing-plans/list" target="_blank" rel="noopener noreferrer" style="color:#38bdf8; text-decoration:underline;">Ray Pro</a> to access schedule uploads and analysis.`;
     });
 
     replayWelcomeBtn.addEventListener("click", replayWelcome);
@@ -1478,7 +1316,10 @@ const PRO_INTRO_URL = "PASTE_RAY_PRO_MP3_URL_HERE";
       }
     });
 
-    initializePage();
+    renderProjectNameOptions();
+    syncProjectInputMode();
+    updateOpenMicIndicator();
+    updateTryRayStatus();
     maybeAutoPlayWelcome();
   </script>
 </body>
