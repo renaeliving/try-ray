@@ -129,6 +129,31 @@
       font-size: 0.85rem;
     }
 
+    .hero-header {
+      max-width: 850px;
+      width: 100%;
+      margin: 0 auto 4px;
+      padding: 0 4px;
+      box-sizing: border-box;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+
+    .hero-header h1 {
+      margin: 0 0 6px;
+      font-size: 1.9rem;
+      color: #f9fafb;
+      font-weight: 700;
+    }
+
+    .hero-header p {
+      margin: 0;
+      font-size: 1rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+
     .row {
       display: flex;
       flex-wrap: wrap;
@@ -240,16 +265,48 @@
     .markdown-content pre { background: #020617; border: 1px solid #334155; border-radius: 10px; padding: 10px; overflow-x: auto; }
     .markdown-content a { color: #38bdf8; text-decoration: underline; }
 
+    .locked-upload {
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      background: rgba(56, 189, 248, 0.08);
+      border-radius: 12px;
+      padding: 12px;
+      margin-top: 8px;
+    }
+
+    .locked-upload strong {
+      display: block;
+      color: #f9fafb;
+      margin-bottom: 4px;
+      font-size: 0.95rem;
+    }
+
+    .locked-upload p {
+      margin: 0;
+      color: #cbd5e1;
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+
+    #schedule-file:disabled,
+    #analyze-btn:disabled {
+      opacity: 0.45 !important;
+      cursor: not-allowed !important;
+    }
+
     #plans-footer {
       text-align: center;
-      font-size: 0.9rem;
-      color: #cbd5e1;
-      padding-bottom: 12px;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #f9fafb;
+      padding: 6px 0 16px;
     }
 
     #plans-footer a {
       color: #38bdf8;
       text-decoration: underline;
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-left: 6px;
     }
 
     @media (max-width: 900px) {
@@ -289,6 +346,13 @@
     </div>
 
     <div id="ray-main">
+      <section class="hero-header">
+        <h1>Meet Ray</h1>
+        <p>
+          Ray is your AI project coach — here to help you think through risks, priorities, next steps, and the questions that come up when projects get complicated.
+        </p>
+      </section>
+
       <section class="panel">
         <h2>Project Menu</h2>
         <p>
@@ -340,7 +404,7 @@
       <section class="panel" id="upload-panel">
         <h2>Upload your project schedule as a CSV</h2>
         <p>
-          Schedule uploads and analysis are available with Ray Pro.
+          Ray Pro includes schedule upload and analysis.
         </p>
 
         <div class="row">
@@ -348,18 +412,21 @@
           <button id="analyze-btn" class="btn" type="button" disabled>Analyze schedule</button>
         </div>
 
-        <div id="upload-locked-message" style="margin:6px 0 10px; font-size:0.85rem; color:#cbd5e1;">
-          Upgrade to
-          <a
-            href="https://www.projectpilot.ai/pricing-plans/list"
-            target="_blank"
-            rel="noopener noreferrer"
-            style="color:#38bdf8; text-decoration:underline;"
-          >Ray Pro</a>
-          to access schedule uploads and analysis.
+        <div class="locked-upload">
+          <strong>This feature is available with Ray Pro.</strong>
+          <p>
+            Upgrade to
+            <a
+              href="https://www.projectpilot.ai/pricing-plans/list"
+              target="_blank"
+              rel="noopener noreferrer"
+              style="color:#38bdf8; text-decoration:underline;"
+            >Ray Pro</a>
+            to upload your project schedule, analyze dependencies and timing, and spot risks before things begin to slip.
+          </p>
         </div>
 
-        <div style="margin-top:-2px; margin-bottom:10px;">
+        <div style="margin-top:10px; margin-bottom:10px;">
           <button
             id="csv-format-help-btn"
             type="button"
@@ -381,7 +448,7 @@
       </section>
 
       <div id="plans-footer">
-        Ready for more? <a href="https://www.projectpilot.ai/pricing-plans/list" target="_blank" rel="noopener noreferrer">View plans</a>
+        Ready for More? <a href="https://www.projectpilot.ai/pricing-plans/list" target="_blank" rel="noopener noreferrer">View Plans</a>
       </div>
     </div>
   </div>
@@ -506,25 +573,24 @@
     const TRY_RAY_VOICE_URL = `${BACKEND_BASE}/api/try-ray-voice`;
     const SPEAK_URL = `${BACKEND_BASE}/api/speak`;
 
-    const TRY_INTRO_URL = "PASTE_TRY_RAY_MP3_URL_HERE";
+    const TRY_INTRO_URL = "https://static.wixstatic.com/mp3/3cf059_170238a1a9ff43f1aa9b4a1b1a204d06.mp3";
     const TRY_RAY_LIMIT = 30;
 
     const PROJECT_NAMES_KEY = "tryRayProjectNames";
     const LAST_PROJECT_KEY = "tryRayLastProjectName";
     const NEW_PROJECT_SENTINEL = "__new__";
+    const WELCOME_PLAYED_KEY = "tryRayWelcomePlayed_v2";
 
     const projectNameInput = document.getElementById("project-name");
     const newProjectRowEl = document.getElementById("new-project-row");
     const newProjectNameInput = document.getElementById("new-project-name");
     const projectContextStatus = document.getElementById("project-context-status");
-
     const fileInput = document.getElementById("schedule-file");
     const analyzeBtn = document.getElementById("analyze-btn");
     const statusEl = document.getElementById("upload-status");
     const csvFormatHelpBtn = document.getElementById("csv-format-help-btn");
     const csvFormatModal = document.getElementById("csv-format-modal");
     const closeCsvFormatModalBtn = document.getElementById("close-csv-format-modal");
-
     const chatHistoryEl = document.getElementById("chat-history");
     const chatInput = document.getElementById("chat-input");
     const sendChatBtn = document.getElementById("send-chat-btn");
@@ -532,7 +598,6 @@
     const chatStatusEl = document.getElementById("chat-status");
     const tryRayStatusEl = document.getElementById("try-ray-status");
     const clearChatBtn = document.getElementById("clear-chat-btn");
-
     const replayWelcomeBtn = document.getElementById("replay-welcome-btn");
     const voiceStateEl = document.getElementById("voice-state");
     const rayImageWrap = document.getElementById("ray-image-wrap");
@@ -612,7 +677,7 @@
 
     function updateTryRayStatus() {
       if (remainingQuestions <= 0) {
-        tryRayStatusEl.innerHTML = `You’ve reached the ${TRY_RAY_LIMIT} conversation limit for Try Ray. <a href="https://www.projectpilot.ai/pricing-plans/list" target="_blank" rel="noopener noreferrer" style="color:#38bdf8; text-decoration:underline;">View plans</a>.`;
+        tryRayStatusEl.innerHTML = `You’ve reached the ${TRY_RAY_LIMIT} conversation limit for Try Ray. <a href="https://www.projectpilot.ai/pricing-plans/list" target="_blank" rel="noopener noreferrer" style="color:#38bdf8; text-decoration:underline;">View Plans</a>.`;
       } else {
         tryRayStatusEl.textContent = `${remainingQuestions} of ${TRY_RAY_LIMIT} conversations remaining.`;
       }
@@ -765,20 +830,18 @@
     }
 
     function maybeAutoPlayWelcome() {
-      const welcomeKey = "tryRayWelcomePlayed";
-      const alreadyPlayed = localStorage.getItem(welcomeKey) === "true";
-
+      const alreadyPlayed = localStorage.getItem(WELCOME_PLAYED_KEY) === "true";
       if (alreadyPlayed) return;
-      if (!TRY_INTRO_URL || TRY_INTRO_URL.includes("PASTE_")) return;
+      if (!TRY_INTRO_URL) return;
 
-      localStorage.setItem(welcomeKey, "true");
+      localStorage.setItem(WELCOME_PLAYED_KEY, "true");
       replayWelcome();
     }
 
     function replayWelcome() {
       try {
         const introUrl = TRY_INTRO_URL;
-        if (!introUrl || introUrl.includes("PASTE_")) return;
+        if (!introUrl) return;
 
         stopReplyAudio();
 
@@ -923,12 +986,10 @@
     function downloadChatTranscript() {
       const projectName = getSelectedProjectName() || "general";
       const safeProjectName = projectName.replace(/[^a-z0-9-_]+/gi, "_");
-      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      const timestamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
 
       const lines = [];
-      const messages = chatHistoryEl.querySelectorAll(".chat-message");
-
-      messages.forEach((msg) => {
+      chatHistoryEl.querySelectorAll(".chat-message").forEach((msg) => {
         const fullText = msg.innerText.trim();
         if (fullText) lines.push(fullText);
       });
@@ -946,7 +1007,7 @@
         ...lines
       ].join("\n");
 
-      const blob = new Blob([transcript], { type: "text/plain;charset=utf-8" });
+      const blob = new Blob([transcript], { type:"text/plain;charset=utf-8" });
       const url = URL.createObjectURL(blob);
 
       const a = document.createElement("a");
@@ -961,15 +1022,13 @@
     }
 
     async function sendTryRayMessage(message, voiceMode = false) {
-      const userId = getTryRayUserId();
-
       const res = await fetch(TRY_RAY_CHAT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({
+          userId:getTryRayUserId(),
           message,
-          includeAudio: false,
+          includeAudio:false,
           voiceMode
         })
       });
@@ -1030,19 +1089,17 @@
       if (mediaStream && analyser && audioContext) return;
 
       mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          channelCount: 1
+        audio:{
+          echoCancellation:true,
+          noiseSuppression:true,
+          autoGainControl:true,
+          channelCount:1
         }
       });
 
       currentMimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
-        : MediaRecorder.isTypeSupported("audio/webm")
-          ? "audio/webm"
-          : "";
+        : (MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "");
 
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
       micSource = audioContext.createMediaStreamSource(mediaStream);
@@ -1080,9 +1137,7 @@
       );
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          recordedChunks.push(event.data);
-        }
+        if (event.data && event.data.size > 0) recordedChunks.push(event.data);
       };
 
       mediaRecorder.onstop = async () => {
@@ -1093,17 +1148,12 @@
           return;
         }
 
-        const blob = new Blob(recordedChunks, {
-          type: currentMimeType || "audio/webm"
-        });
-
+        const blob = new Blob(recordedChunks, { type: currentMimeType || "audio/webm" });
         recordedChunks = [];
 
         if (blob.size < MIN_AUDIO_BYTES) {
           isProcessingVoice = false;
-          if (conversationActive) {
-            chatStatusEl.textContent = "Open Mic on. Start speaking any time.";
-          }
+          if (conversationActive) chatStatusEl.textContent = "Open Mic on. Start speaking any time.";
           return;
         }
 
@@ -1169,9 +1219,7 @@
         chatStatusEl.textContent = "Open Mic on. Start speaking any time.";
         setVoiceState("listening", "Open Mic on");
 
-        if (monitorFrame) {
-          cancelAnimationFrame(monitorFrame);
-        }
+        if (monitorFrame) cancelAnimationFrame(monitorFrame);
         monitorConversation();
       } catch (err) {
         console.error(err);
@@ -1192,7 +1240,7 @@
       }
 
       if (mediaRecorder && mediaRecorder.state === "recording") {
-        stopSegmentRecorder({ discard: true });
+        stopSegmentRecorder({ discard:true });
       }
 
       if (mediaStream) {
@@ -1219,8 +1267,8 @@
 
       try {
         const res = await fetch(TRY_RAY_VOICE_URL, {
-          method: "POST",
-          body: formData,
+          method:"POST",
+          body:formData
         });
 
         const data = await res.json();
@@ -1243,9 +1291,7 @@
           return;
         }
 
-        if (data.transcript) {
-          addChatMessage("user", data.transcript);
-        }
+        if (data.transcript) addChatMessage("user", data.transcript);
 
         if (data.reply) {
           addChatMessage("assistant", data.reply);
@@ -1278,27 +1324,23 @@
     });
 
     csvFormatModal.addEventListener("click", (e) => {
-      if (e.target === csvFormatModal) {
-        csvFormatModal.style.display = "none";
-      }
+      if (e.target === csvFormatModal) csvFormatModal.style.display = "none";
     });
 
     projectNameInput.addEventListener("change", () => {
       const selected = projectNameInput.value.trim();
-
       if (selected && selected !== NEW_PROJECT_SENTINEL) {
         localStorage.setItem(LAST_PROJECT_KEY, selected);
       } else {
         localStorage.removeItem(LAST_PROJECT_KEY);
       }
-
       syncProjectInputMode();
     });
 
     newProjectNameInput.addEventListener("input", updateProjectContextStatus);
 
     analyzeBtn.addEventListener("click", async () => {
-      statusEl.innerHTML = `Upgrade to <a href="https://www.projectpilot.ai/pricing-plans/list" target="_blank" rel="noopener noreferrer" style="color:#38bdf8; text-decoration:underline;">Ray Pro</a> to access schedule uploads and analysis.`;
+      statusEl.innerHTML = `This feature is only available with <a href="https://www.projectpilot.ai/pricing-plans/list" target="_blank" rel="noopener noreferrer" style="color:#38bdf8; text-decoration:underline;">Ray Pro</a>.`;
     });
 
     replayWelcomeBtn.addEventListener("click", replayWelcome);
@@ -1320,7 +1362,7 @@
     syncProjectInputMode();
     updateOpenMicIndicator();
     updateTryRayStatus();
-    maybeAutoPlayWelcome();
+    setTimeout(maybeAutoPlayWelcome, 400);
   </script>
 </body>
 </html>
