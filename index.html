@@ -633,7 +633,7 @@ function updateWelcomeButton() {
     const openMicIndicatorEl = document.getElementById("open-mic-indicator");
     const openMicTextEl = document.getElementById("open-mic-text");
 
-    let currentReplyAudio = null;
+   let currentReplyAudio = null;
 let currentReplyAudioUrl = null;
 let welcomeAudio = null;
 let isPlayingWelcome = false;
@@ -711,38 +711,66 @@ let rayMuted = false;
     }
 
     function stopReplyAudio() {
-      if (currentReplyAudio) {
-        currentReplyAudio.pause();
-        currentReplyAudio.currentTime = 0;
-        currentReplyAudio = null;
-      }
+  if (currentReplyAudio) {
+    currentReplyAudio.pause();
+    currentReplyAudio.currentTime = 0;
+    currentReplyAudio = null;
+  }
 
-      if (currentReplyAudioUrl) {
-        URL.revokeObjectURL(currentReplyAudioUrl);
-        currentReplyAudioUrl = null;
-      }
+  if (currentReplyAudioUrl) {
+    URL.revokeObjectURL(currentReplyAudioUrl);
+    currentReplyAudioUrl = null;
+  }
 
-      updateRayMuteButton();
-      if (!conversationActive && !isGeneratingSpeech && !isPlayingWelcome) {
-        setVoiceState("idle", "");
-      }
-    }
+  updateRayMuteButton();
 
-    function stopWelcomeAudio() {
-      if (welcomeAudio) {
-        welcomeAudio.pause();
-        welcomeAudio.currentTime = 0;
-      }
-      isPlayingWelcome = false;
-      updateRayMuteButton();
-      if (!conversationActive && !currentReplyAudio && !isGeneratingSpeech) {
-        setVoiceState("idle", "");
-      }
-    }
+  if (!conversationActive && !isGeneratingSpeech && !isPlayingWelcome) {
+    setVoiceState("idle", "");
+  }
+}
 
-   function stopAllVoicePlayback() {
+   function stopWelcomeAudio() {
+  if (welcomeAudio) {
+    welcomeAudio.pause();
+    welcomeAudio.currentTime = 0;
+  }
+
+  isPlayingWelcome = false;
+  updateRayMuteButton();
+
+  if (!conversationActive && !currentReplyAudio && !isGeneratingSpeech) {
+    setVoiceState("idle", "");
+  }
+}
+
+  function stopAllVoicePlayback() {
   stopReplyAudio();
   stopWelcomeAudio();
+}
+
+function updateRayMuteButton() {
+  if (!pauseRayBtn) return;
+  pauseRayBtn.textContent = rayMuted ? "Unmute Ray" : "Mute Ray";
+}
+
+function stopRayVoiceOnly() {
+  if (currentReplyAudio) {
+    currentReplyAudio.pause();
+    currentReplyAudio.currentTime = 0;
+    currentReplyAudio = null;
+  }
+
+  if (currentReplyAudioUrl) {
+    URL.revokeObjectURL(currentReplyAudioUrl);
+    currentReplyAudioUrl = null;
+  }
+
+  if (welcomeAudio) {
+    welcomeAudio.pause();
+    welcomeAudio.currentTime = 0;
+  }
+
+  isPlayingWelcome = false;
 }
 
 function updateRayMuteButton() {
@@ -779,9 +807,7 @@ function applyRayMuteState() {
   }
 }
 
-    function playAudioBase64(audioBase64) {
-      stopReplyAudio();
-      if (!audioBase64) return;
+  function playAudioBase64(audioBase64) {
 
       try {
         const byteCharacters = atob(audioBase64);
@@ -832,9 +858,14 @@ updateRayMuteButton();
     }
 
     async function speakReply(reply) {
-      if (!reply) return;
+  if (!reply) return;
 
-      isGeneratingSpeech = true;
+  if (rayMuted) {
+    updateRayMuteButton();
+    return;
+  }
+
+  isGeneratingSpeech = true;
       chatStatusEl.textContent = "Generating Ray's voice...";
 
       try {
@@ -873,12 +904,16 @@ updateRayMuteButton();
 }
 
   function replayWelcome(force = false) {
-      try {
-        const introUrl = TRY_INTRO_URL;
-        if (!introUrl) return;
+  try {
+    const introUrl = TRY_INTRO_URL;
+    if (!introUrl) return;
 
-        stopReplyAudio();
+    if (rayMuted) {
+      updateRayMuteButton();
+      return;
+    }
 
+    stopReplyAudio();
         if (!welcomeAudio) {
           welcomeAudio = new Audio(introUrl);
 welcomeAudio.playbackRate = 1.18;
@@ -991,13 +1026,12 @@ updateRayMuteButton();
         saveProjectNames(existing);
       }
 
-     renderProjectNameOptions();
+    renderProjectNameOptions();
 syncProjectInputMode();
 updateOpenMicIndicator();
 updateRayMuteButton();
 updateTryRayStatus();
 setTimeout(maybeAutoPlayWelcome, 400);
-    }
 
     function getSelectedProjectName() {
       const selected = projectNameInput.value.trim();
