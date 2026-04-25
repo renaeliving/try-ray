@@ -580,7 +580,7 @@
     const PROJECT_NAMES_KEY = "tryRayProjectNames";
     const LAST_PROJECT_KEY = "tryRayLastProjectName";
     const NEW_PROJECT_SENTINEL = "__new__";
-    const WELCOME_PLAYED_KEY = "tryRayWelcomePlayed_v2";
+    const WELCOME_PLAYED_KEY = "tryRayWelcomePlayed_v3";
 
     const projectNameInput = document.getElementById("project-name");
     const newProjectRowEl = document.getElementById("new-project-row");
@@ -600,6 +600,32 @@
     const tryRayStatusEl = document.getElementById("try-ray-status");
     const clearChatBtn = document.getElementById("clear-chat-btn");
     const replayWelcomeBtn = document.getElementById("replay-welcome-btn");
+    function getWelcomeKey() {
+  return WELCOME_PLAYED_KEY;
+}
+
+function updateWelcomeButton() {
+  const key = getWelcomeKey();
+  const hasPlayed = localStorage.getItem(key) === "true";
+
+  if (!replayWelcomeBtn) return;
+
+  if (!hasPlayed) {
+    replayWelcomeBtn.textContent = "Start Here – Welcome";
+
+    replayWelcomeBtn.style.background = "#ffffff";
+    replayWelcomeBtn.style.color = "#020617";
+    replayWelcomeBtn.style.fontSize = "0.95rem";
+    replayWelcomeBtn.style.fontWeight = "600";
+  } else {
+    replayWelcomeBtn.textContent = "Replay Welcome";
+
+    replayWelcomeBtn.style.background = "";
+    replayWelcomeBtn.style.color = "";
+    replayWelcomeBtn.style.fontSize = "";
+    replayWelcomeBtn.style.fontWeight = "";
+  }
+}
     const voiceStateEl = document.getElementById("voice-state");
     const rayImageWrap = document.getElementById("ray-image-wrap");
     const beginBtn = document.getElementById("begin-btn");
@@ -830,16 +856,23 @@
       }
     }
 
-    function maybeAutoPlayWelcome() {
-      const alreadyPlayed = localStorage.getItem(WELCOME_PLAYED_KEY) === "true";
-      if (alreadyPlayed) return;
-      if (!TRY_INTRO_URL) return;
+    function maybeAutoPlayWelcome(force = false) {
+  if (!force && (isPlayingWelcome || currentReplyAudio)) return;
 
-      localStorage.setItem(WELCOME_PLAYED_KEY, "true");
-      replayWelcome();
-    }
+  const introUrl = TRY_INTRO_URL;
+  if (!introUrl) return;
 
-    function replayWelcome() {
+  const welcomeKey = getWelcomeKey();
+
+  if (!force && localStorage.getItem(welcomeKey) === "true") {
+    updateWelcomeButton();
+    return;
+  }
+
+  replayWelcome(force);
+}
+
+  function replayWelcome(force = false) {
       try {
         const introUrl = TRY_INTRO_URL;
         if (!introUrl) return;
@@ -882,9 +915,18 @@
           welcomeAudio.src = introUrl;
         }
 
-        welcomeAudio.play().catch((err) => {
-          console.error("Intro audio could not play:", err);
-        });
+       welcomeAudio.play()
+  .then(() => {
+    console.log("Try Ray welcome audio started successfully.");
+
+    localStorage.setItem(getWelcomeKey(), "true");
+    updateWelcomeButton();
+  })
+  .catch((err) => {
+    console.error("Intro audio could not play:", err);
+
+    updateWelcomeButton();
+  });
       } catch (err) {
         console.error(err);
       }
