@@ -393,7 +393,7 @@
           <button id="send-chat-btn" class="btn" type="button">Send Text</button>
           <button id="begin-btn" class="voice-btn" type="button">Begin Conversation</button>
           <button id="pause-ray-btn" class="voice-btn secondary" type="button">Mute Ray</button>
-          <button id="stop-conversation-btn" class="voice-btn secondary" type="button">Mic Off</button>
+         <button id="stop-conversation-btn" class="voice-btn secondary" type="button" style="display:none;">Mic Off</button>
         </div>
 
         <div id="chat-status"></div>
@@ -695,12 +695,18 @@ let rayMuted = false;
       voiceStateEl.textContent = text;
     }
 
-    function updateOpenMicIndicator() {
-      openMicIndicatorEl.classList.toggle("on", conversationActive);
-      openMicTextEl.textContent = conversationActive ? "Open Mic On" : "Open Mic Off";
-      beginBtn.disabled = conversationActive;
-      stopConversationBtn.disabled = !conversationActive;
-    }
+   function updateOpenMicIndicator() {
+  openMicIndicatorEl.classList.toggle("on", conversationActive);
+  openMicTextEl.textContent = conversationActive ? "Open Mic On" : "Open Mic Off";
+
+  beginBtn.textContent = conversationActive ? "End Conversation" : "Begin Conversation";
+  beginBtn.disabled = false;
+
+  if (stopConversationBtn) {
+    stopConversationBtn.style.display = "none";
+    stopConversationBtn.disabled = true;
+  }
+}
 
     function updateTryRayStatus() {
       if (remainingQuestions <= 0) {
@@ -1139,7 +1145,7 @@ updateRayMuteButton();
       chatInput.value = "";
       chatStatusEl.textContent = "Ray is thinking...";
       sendChatBtn.disabled = true;
-      beginBtn.disabled = true;
+      beginBtn.disabled = conversationActive;
 
       try {
         const data = await sendTryRayMessage(message, true);
@@ -1282,7 +1288,14 @@ updateRayMuteButton();
 
       monitorFrame = requestAnimationFrame(monitorConversation);
     }
+async function toggleConversation() {
+  if (conversationActive) {
+    await stopConversation();
+    return;
+  }
 
+  await beginConversation();
+}
     async function beginConversation() {
       if (conversationActive) return;
       if (remainingQuestions <= 0) {
@@ -1343,7 +1356,7 @@ updateRayMuteButton();
       formData.append("userId", getTryRayUserId());
 
       sendChatBtn.disabled = true;
-      beginBtn.disabled = true;
+      beginBtn.disabled = conversationActive;
 
       try {
         const res = await fetch(TRY_RAY_VOICE_URL, {
@@ -1424,7 +1437,7 @@ updateRayMuteButton();
     });
 
     replayWelcomeBtn.addEventListener("click", replayWelcome);
-    beginBtn.addEventListener("click", beginConversation);
+    beginBtn.addEventListener("click", toggleConversation);
     pauseRayBtn.addEventListener("click", togglePauseRay);
     stopConversationBtn.addEventListener("click", stopConversation);
     sendChatBtn.addEventListener("click", sendChatMessage);
