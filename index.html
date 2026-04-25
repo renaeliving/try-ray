@@ -796,6 +796,7 @@ function togglePauseRay() {
     setVoiceState("idle", "");
   }
 }
+
   function playAudioBase64(audioBase64) {
   stopReplyAudio();
 
@@ -806,7 +807,7 @@ function togglePauseRay() {
 
   if (!audioBase64) return;
 
-  try {
+      try {
         const byteCharacters = atob(audioBase64);
         const byteNumbers = new Array(byteCharacters.length);
 
@@ -1009,24 +1010,24 @@ updateRayMuteButton();
     }
 
     function addProjectNameToSavedList(name) {
-  const cleanName = (name || "").trim();
-  if (!cleanName) return;
+      const cleanName = (name || "").trim();
+      if (!cleanName) return;
 
-  const existing = getSavedProjectNames();
-  const alreadyExists = existing.some(
-    (p) => p.toLowerCase() === cleanName.toLowerCase()
-  );
+      const existing = getSavedProjectNames();
+      const alreadyExists = existing.some(
+        (p) => p.toLowerCase() === cleanName.toLowerCase()
+      );
 
-  if (!alreadyExists) {
-    existing.push(cleanName);
-    existing.sort((a, b) => a.localeCompare(b));
-    saveProjectNames(existing);
-  }
+      if (!alreadyExists) {
+        existing.push(cleanName);
+        existing.sort((a, b) => a.localeCompare(b));
+        saveProjectNames(existing);
+      }
 
-  renderProjectNameOptions();
-}
+      renderProjectNameOptions();
+    }
 
-function getSelectedProjectName() {
+    function getSelectedProjectName() {
       const selected = projectNameInput.value.trim();
       if (selected === NEW_PROJECT_SENTINEL) {
         return newProjectNameInput.value.trim();
@@ -1437,13 +1438,13 @@ function getSelectedProjectName() {
       }
     });
 
-   renderProjectNameOptions();
-syncProjectInputMode();
-updateOpenMicIndicator();
-updateRayMuteButton();
-updateWelcomeButton();
-updateTryRayStatus();
-setTimeout(maybeAutoPlayWelcome, 400);
+    renderProjectNameOptions();
+    syncProjectInputMode();
+    updateOpenMicIndicator();
+    updateRayMuteButton();
+    updateWelcomeButton();
+    updateTryRayStatus();
+    setTimeout(maybeAutoPlayWelcome, 400);
   </script>
 </body>
 </html>
