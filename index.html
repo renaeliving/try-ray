@@ -692,6 +692,19 @@ let speechRequestId = 0;
       chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
     }
 
+    function getPersistentReplyAudio() {
+      if (!persistentReplyAudio) {
+        persistentReplyAudio = document.createElement("audio");
+        persistentReplyAudio.setAttribute("playsinline", "true");
+        persistentReplyAudio.setAttribute("webkit-playsinline", "true");
+        persistentReplyAudio.preload = "auto";
+        persistentReplyAudio.style.display = "none";
+        document.body.appendChild(persistentReplyAudio);
+      }
+
+      return persistentReplyAudio;
+    }
+
     async function unlockMobileAudio() {
       if (mobileAudioUnlocked) return;
 
@@ -726,16 +739,25 @@ let speechRequestId = 0;
           mobileUnlockAudio.playsInline = true;
         }
 
-        mobileUnlockAudio.play()
-          .then(() => {
-            mobileUnlockAudio.pause();
-            mobileUnlockAudio.currentTime = 0;
-          })
-          .catch((err) => {
-            console.warn("Mobile silent audio unlock failed:", err);
-          });
+        await mobileUnlockAudio.play();
+        mobileUnlockAudio.pause();
+        mobileUnlockAudio.currentTime = 0;
       } catch (err) {
         console.warn("Mobile silent audio unlock failed:", err);
+      }
+
+      try {
+        const player = getPersistentReplyAudio();
+        player.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQQAAAAAAA==";
+        player.muted = true;
+        player.volume = 0;
+        await player.play();
+        player.pause();
+        player.currentTime = 0;
+        player.muted = false;
+        player.volume = 1;
+      } catch (err) {
+        console.warn("Persistent audio unlock failed:", err);
       }
 
       mobileAudioUnlocked = true;
@@ -773,13 +795,15 @@ let speechRequestId = 0;
 
     function stopReplyAudio() {
       if (currentReplyAudio) {
-        currentReplyAudio.pause();
-        currentReplyAudio.currentTime = 0;
-
-        if (currentReplyAudio !== persistentReplyAudio) {
-          currentReplyAudio = null;
+        try {
+          currentReplyAudio.pause();
+          currentReplyAudio.currentTime = 0;
+        } catch (err) {
+          console.warn("Could not stop reply audio:", err);
         }
       }
+
+      currentReplyAudio = null;
 
       if (currentReplyAudioUrl) {
         URL.revokeObjectURL(currentReplyAudioUrl);
@@ -868,14 +892,13 @@ function togglePauseRay() {
 
   if (rayMuted) {
     updateRayMuteButton();
-    resumeLiveMicAfterRaySpeech();
+    chatStatusEl.textContent = conversationActive
+      ? "Open Mic on. Ray voice is muted."
+      : "";
     return;
   }
 
-  if (!audioBase64) {
-    resumeLiveMicAfterRaySpeech();
-    return;
-  }
+  if (!audioBase64) return;
 
   try {
     const byteCharacters = atob(audioBase64);
@@ -895,67 +918,69 @@ function togglePauseRay() {
 
     currentReplyAudioUrl = URL.createObjectURL(blob);
 
-    if (!persistentReplyAudio) {
-      persistentReplyAudio = document.createElement("audio");
-      persistentReplyAudio.setAttribute("playsinline", "true");
-      persistentReplyAudio.setAttribute("webkit-playsinline", "true");
-      persistentReplyAudio.preload = "auto";
-      persistentReplyAudio.style.display = "none";
-      document.body.appendChild(persistentReplyAudio);
-    }
+    const player = getPersistentReplyAudio();
+    currentReplyAudio = player;
 
-    currentReplyAudio = persistentReplyAudio;
-    currentReplyAudio.pause();
-    currentReplyAudio.currentTime = 0;
-    currentReplyAudio.src = currentReplyAudioUrl;
-    currentReplyAudio.playbackRate = 1.18;
-    currentReplyAudio.muted = false;
-    currentReplyAudio.volume = 1;
+    player.pause();
+    player.currentTime = 0;
+    player.src = currentReplyAudioUrl;
+    player.playbackRate = 1.18;
+    player.muted = false;
+    player.volume = 1;
 
     updateRayMuteButton();
 
-    currentReplyAudio.onplay = () => {
+    let playbackWatchdog = null;
+
+    const finishPlayback = () => {
+      if (playbackWatchdog) {
+        clearTimeout(playbackWatchdog);
+        playbackWatchdog = null;
+      }
+
+      updateRayMuteButton();
+      listeningResumeAt = Date.now() + 450;
+      currentReplyAudio = null;
+      setVoiceState(conversationActive ? "listening" : "idle", conversationActive ? "Open Mic on" : "");
+      chatStatusEl.textContent = conversationActive ? "Open Mic on. Start speaking any time." : "";
+    };
+
+    player.onplay = () => {
       setVoiceState("speaking", "Ray is speaking...");
     };
 
-    currentReplyAudio.onended = () => {
-      updateRayMuteButton();
-      listeningResumeAt = Date.now() + 450;
-      stopReplyAudio();
-      resumeLiveMicAfterRaySpeech();
-    };
+    player.onended = finishPlayback;
+    player.onerror = finishPlayback;
 
-    currentReplyAudio.onerror = () => {
-      updateRayMuteButton();
-      listeningResumeAt = Date.now() + 450;
-      stopReplyAudio();
-      resumeLiveMicAfterRaySpeech();
-    };
+    playbackWatchdog = setTimeout(() => {
+      if (conversationActive && currentReplyAudio === player && player.paused) {
+        console.warn("Reply audio did not start; returning to listening mode.");
+        finishPlayback();
+      }
+    }, 2500);
 
-    const playPromise = currentReplyAudio.play();
+    const playPromise = player.play();
 
     if (playPromise && typeof playPromise.catch === "function") {
       playPromise.catch((err) => {
         console.error("Reply audio could not play:", err);
-        chatStatusEl.textContent = conversationActive
-          ? "Tap Send Text once, then continue live chat."
-          : "";
-        stopReplyAudio();
-        resumeLiveMicAfterRaySpeech();
+        finishPlayback();
       });
     }
   } catch (err) {
     console.error("Could not decode ElevenLabs audio:", err);
-    resumeLiveMicAfterRaySpeech();
+    currentReplyAudio = null;
+    chatStatusEl.textContent = conversationActive ? "Open Mic on. Start speaking any time." : "";
   }
 }
-
     async function speakReply(reply) {
   if (!reply) return;
 
   if (rayMuted) {
     updateRayMuteButton();
-    resumeLiveMicAfterRaySpeech();
+    chatStatusEl.textContent = conversationActive
+      ? "Open Mic on. Ray voice is muted."
+      : "";
     return;
   }
 
@@ -982,7 +1007,6 @@ function togglePauseRay() {
   } catch (err) {
     console.error(err);
     chatStatusEl.textContent = conversationActive ? "Open Mic on. Start speaking any time." : "";
-    resumeLiveMicAfterRaySpeech();
   } finally {
     if (thisSpeechRequestId === speechRequestId) {
       isGeneratingSpeech = false;
@@ -1019,7 +1043,6 @@ function togglePauseRay() {
     stopReplyAudio();
         if (!welcomeAudio) {
           welcomeAudio = new Audio(introUrl);
-welcomeAudio.playsInline = true;
 welcomeAudio.playbackRate = 1.18;
 welcomeAudio.muted = rayMuted;
 updateRayMuteButton();
@@ -1054,7 +1077,6 @@ updateRayMuteButton();
           welcomeAudio.pause();
 welcomeAudio.currentTime = 0;
 welcomeAudio.src = introUrl;
-welcomeAudio.playsInline = true;
 welcomeAudio.muted = rayMuted;
 updateRayMuteButton();
         }
@@ -1236,14 +1258,12 @@ updateRayMuteButton();
       const projectName = getSelectedProjectName();
 
       if (!message) return;
-
-      unlockMobileAudio();
-
       if (remainingQuestions <= 0) {
         updateTryRayStatus();
         return;
       }
 
+      unlockMobileAudio();
       stopReplyAudio();
       addChatMessage("user", message);
       chatInput.value = "";
@@ -1276,12 +1296,7 @@ updateRayMuteButton();
     }
 
     async function ensureMicReady() {
-      if (mediaStream && analyser && audioContext) {
-        if (audioContext.state === "suspended") {
-          await audioContext.resume();
-        }
-        return;
-      }
+      if (mediaStream && analyser && audioContext) return;
 
       mediaStream = await navigator.mediaDevices.getUserMedia({
         audio:{
@@ -1296,13 +1311,10 @@ updateRayMuteButton();
         ? "audio/webm;codecs=opus"
         : (MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "");
 
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      audioContext = new AudioContextClass({ latencyHint: "interactive" });
-
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
       if (audioContext.state === "suspended") {
         await audioContext.resume();
       }
-
       micSource = audioContext.createMediaStreamSource(mediaStream);
       analyser = audioContext.createAnalyser();
       analyser.fftSize = 2048;
@@ -1385,7 +1397,7 @@ updateRayMuteButton();
       const busy =
         isProcessingVoice ||
         isGeneratingSpeech ||
-        !!currentReplyAudio ||
+        (currentReplyAudio && !currentReplyAudio.paused && !currentReplyAudio.ended) ||
         isPlayingWelcome ||
         now < listeningResumeAt;
 
@@ -1413,14 +1425,12 @@ async function toggleConversation() {
 }
     async function beginConversation() {
       if (conversationActive) return;
-
-      unlockMobileAudio();
-
       if (remainingQuestions <= 0) {
         updateTryRayStatus();
         return;
       }
 
+      unlockMobileAudio();
       stopAllVoicePlayback();
 
       try {
@@ -1469,58 +1479,6 @@ async function toggleConversation() {
       micSource = null;
     }
 
-    async function pauseLiveMicForRaySpeech() {
-      if (!conversationActive) return;
-
-      if (monitorFrame) {
-        cancelAnimationFrame(monitorFrame);
-        monitorFrame = null;
-      }
-
-      if (mediaRecorder && mediaRecorder.state === "recording") {
-        stopSegmentRecorder({ discard: true });
-      }
-
-      if (mediaStream) {
-        mediaStream.getTracks().forEach((track) => track.stop());
-        mediaStream = null;
-      }
-
-      if (audioContext) {
-        try {
-          await audioContext.close();
-        } catch (err) {
-          console.warn("Audio context close failed:", err);
-        }
-        audioContext = null;
-      }
-
-      analyser = null;
-      micSource = null;
-      mediaRecorder = null;
-    }
-
-    async function resumeLiveMicAfterRaySpeech() {
-      if (!conversationActive) return;
-
-      try {
-        await ensureMicReady();
-
-        if (monitorFrame) {
-          cancelAnimationFrame(monitorFrame);
-          monitorFrame = null;
-        }
-
-        chatStatusEl.textContent = "Open Mic on. Start speaking any time.";
-        setVoiceState("listening", "Open Mic on");
-        monitorConversation();
-      } catch (err) {
-        console.error("Could not resume live mic:", err);
-        chatStatusEl.textContent = "Microphone access was blocked or unavailable.";
-        setVoiceState("idle", "");
-      }
-    }
-
     async function sendVoiceBlob(blob) {
       const formData = new FormData();
       formData.append("audio", blob, "voice.webm");
@@ -1559,19 +1517,14 @@ async function toggleConversation() {
 
         if (data.reply) {
           addChatMessage("assistant", data.reply);
-
-          if (conversationActive && !rayMuted) {
-            chatStatusEl.textContent = "Ray is responding...";
-            await pauseLiveMicForRaySpeech();
-          }
+          chatStatusEl.textContent = "";
 
           if (rayMuted) {
             chatStatusEl.textContent = conversationActive
               ? "Open Mic on. Ray voice is muted."
               : "";
-            if (conversationActive) {
-              setVoiceState("listening", "Open Mic on");
-            }
+          } else if (data.audioBase64) {
+            playAudioBase64(data.audioBase64);
           } else {
             speakReply(data.reply);
           }
@@ -1623,14 +1576,12 @@ async function toggleConversation() {
 
     replayWelcomeBtn.addEventListener("click", () => {
       unlockMobileAudio();
-      replayWelcome();
+      replayWelcome(true);
     });
-
     beginBtn.addEventListener("click", () => {
       unlockMobileAudio();
       toggleConversation();
     });
-
     pauseRayBtn.addEventListener("click", () => {
       unlockMobileAudio();
       togglePauseRay();
