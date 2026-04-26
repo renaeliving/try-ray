@@ -704,7 +704,41 @@ let speechRequestId = 0;
 
       return persistentReplyAudio;
     }
+function primeRayReplyAudioPlayer() {
+  try {
+    if (!persistentReplyAudio) {
+      persistentReplyAudio = document.createElement("audio");
+      persistentReplyAudio.setAttribute("playsinline", "true");
+      persistentReplyAudio.setAttribute("webkit-playsinline", "true");
+      persistentReplyAudio.preload = "auto";
+      persistentReplyAudio.style.display = "none";
+      document.body.appendChild(persistentReplyAudio);
+    }
 
+    persistentReplyAudio.muted = false;
+    persistentReplyAudio.volume = 0.01;
+
+    // Tiny silent wav. This must be played from a real user tap on iPhone.
+    persistentReplyAudio.src =
+      "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQQAAAAAAA==";
+
+    const playPromise = persistentReplyAudio.play();
+
+    if (playPromise && typeof playPromise.then === "function") {
+      playPromise
+        .then(() => {
+          persistentReplyAudio.pause();
+          persistentReplyAudio.currentTime = 0;
+          persistentReplyAudio.volume = 1;
+        })
+        .catch((err) => {
+          console.warn("Ray reply audio prime failed:", err);
+        });
+    }
+  } catch (err) {
+    console.warn("Ray reply audio prime failed:", err);
+  }
+}
     async function unlockMobileAudio() {
       if (mobileAudioUnlocked) return;
 
@@ -1258,6 +1292,8 @@ updateRayMuteButton();
       const projectName = getSelectedProjectName();
 
       if (!message) return;
+      primeRayReplyAudioPlayer();
+unlockMobileAudio();
       if (remainingQuestions <= 0) {
         updateTryRayStatus();
         return;
@@ -1574,14 +1610,17 @@ async function toggleConversation() {
       statusEl.innerHTML = `This feature is only available with <a href="https://www.projectpilot.ai/pricing-plans/list" target="_blank" rel="noopener noreferrer" style="color:#38bdf8; text-decoration:underline;">Ray Pro</a>.`;
     });
 
-    replayWelcomeBtn.addEventListener("click", () => {
-      unlockMobileAudio();
-      replayWelcome(true);
-    });
+   replayWelcomeBtn.addEventListener("click", () => {
+  primeRayReplyAudioPlayer();
+  unlockMobileAudio();
+  maybeAutoPlayWelcome(true);
+  updateWelcomeButton();
+});
     beginBtn.addEventListener("click", () => {
-      unlockMobileAudio();
-      toggleConversation();
-    });
+  primeRayReplyAudioPlayer();
+  unlockMobileAudio();
+  toggleConversation();
+});
     pauseRayBtn.addEventListener("click", () => {
       unlockMobileAudio();
       togglePauseRay();
