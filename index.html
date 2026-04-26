@@ -635,9 +635,15 @@ function updateWelcomeButton() {
 
    let currentReplyAudio = null;
 let currentReplyAudioUrl = null;
+let persistentReplyAudio = null;
 let welcomeAudio = null;
 let isPlayingWelcome = false;
 let rayMuted = false;
+
+let mobileAudioUnlocked = false;
+let mobileAudioContext = null;
+let mobileUnlockAudio = null;
+let speechRequestId = 0;
 
     let mediaStream = null;
     let mediaRecorder = null;
@@ -686,6 +692,55 @@ let rayMuted = false;
       chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
     }
 
+    async function unlockMobileAudio() {
+      if (mobileAudioUnlocked) return;
+
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+        if (AudioContextClass) {
+          if (!mobileAudioContext) {
+            mobileAudioContext = new AudioContextClass();
+          }
+
+          if (mobileAudioContext.state === "suspended") {
+            await mobileAudioContext.resume();
+          }
+
+          const buffer = mobileAudioContext.createBuffer(1, 1, 22050);
+          const source = mobileAudioContext.createBufferSource();
+          source.buffer = buffer;
+          source.connect(mobileAudioContext.destination);
+          source.start(0);
+        }
+      } catch (err) {
+        console.warn("Mobile AudioContext unlock failed:", err);
+      }
+
+      try {
+        if (!mobileUnlockAudio) {
+          mobileUnlockAudio = new Audio(
+            "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQQAAAAAAA=="
+          );
+          mobileUnlockAudio.muted = true;
+          mobileUnlockAudio.playsInline = true;
+        }
+
+        mobileUnlockAudio.play()
+          .then(() => {
+            mobileUnlockAudio.pause();
+            mobileUnlockAudio.currentTime = 0;
+          })
+          .catch((err) => {
+            console.warn("Mobile silent audio unlock failed:", err);
+          });
+      } catch (err) {
+        console.warn("Mobile silent audio unlock failed:", err);
+      }
+
+      mobileAudioUnlocked = true;
+    }
+
     function setVoiceState(state, text = "") {
       rayImageWrap.classList.remove("listening", "speaking");
 
@@ -717,23 +772,26 @@ let rayMuted = false;
     }
 
     function stopReplyAudio() {
-  if (currentReplyAudio) {
-    currentReplyAudio.pause();
-    currentReplyAudio.currentTime = 0;
-    currentReplyAudio = null;
-  }
+      if (currentReplyAudio) {
+        currentReplyAudio.pause();
+        currentReplyAudio.currentTime = 0;
 
-  if (currentReplyAudioUrl) {
-    URL.revokeObjectURL(currentReplyAudioUrl);
-    currentReplyAudioUrl = null;
-  }
+        if (currentReplyAudio !== persistentReplyAudio) {
+          currentReplyAudio = null;
+        }
+      }
 
-  updateRayMuteButton();
+      if (currentReplyAudioUrl) {
+        URL.revokeObjectURL(currentReplyAudioUrl);
+        currentReplyAudioUrl = null;
+      }
 
-  if (!conversationActive && !isGeneratingSpeech && !isPlayingWelcome) {
-    setVoiceState("idle", "");
-  }
-}
+      updateRayMuteButton();
+
+      if (!conversationActive && !isGeneratingSpeech && !isPlayingWelcome) {
+        setVoiceState("idle", "");
+      }
+    }
 
    function stopWelcomeAudio() {
   if (welcomeAudio) {
@@ -750,6 +808,8 @@ let rayMuted = false;
 }
 
   function stopAllVoicePlayback() {
+  speechRequestId++;
+  isGeneratingSpeech = false;
   stopReplyAudio();
   stopWelcomeAudio();
 }
@@ -808,88 +868,127 @@ function togglePauseRay() {
 
   if (rayMuted) {
     updateRayMuteButton();
+    resumeLiveMicAfterRaySpeech();
     return;
   }
 
-  if (!audioBase64) return;
+  if (!audioBase64) {
+    resumeLiveMicAfterRaySpeech();
+    return;
+  }
 
-      try {
-        const byteCharacters = atob(audioBase64);
-        const byteNumbers = new Array(byteCharacters.length);
+  try {
+    const byteCharacters = atob(audioBase64);
+    const byteNumbers = new Array(byteCharacters.length);
 
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: "audio/mpeg" });
-        currentReplyAudioUrl = URL.createObjectURL(blob);
-        currentReplyAudio = new Audio(currentReplyAudioUrl);
-currentReplyAudio.playbackRate = 1.18;
-currentReplyAudio.muted = rayMuted;
-updateRayMuteButton();
-
-        currentReplyAudio.onplay = () => {
-          setVoiceState("speaking", "Ray is speaking...");
-        };
-
-        currentReplyAudio.onended = () => {
-          updateRayMuteButton();
-          listeningResumeAt = Date.now() + 450;
-          stopReplyAudio();
-          chatStatusEl.textContent = conversationActive ? "Open Mic on. Start speaking any time." : "";
-          if (conversationActive) {
-            setVoiceState("listening", "Open Mic on");
-          }
-        };
-
-        currentReplyAudio.onerror = () => {
-          updateRayMuteButton();
-          listeningResumeAt = Date.now() + 450;
-          stopReplyAudio();
-          chatStatusEl.textContent = conversationActive ? "Open Mic on. Start speaking any time." : "";
-        };
-
-        currentReplyAudio.play().catch((err) => {
-          console.error("Reply audio could not play:", err);
-          stopReplyAudio();
-          chatStatusEl.textContent = conversationActive ? "Open Mic on. Start speaking any time." : "";
-        });
-      } catch (err) {
-        console.error("Could not decode ElevenLabs audio:", err);
-        chatStatusEl.textContent = conversationActive ? "Open Mic on. Start speaking any time." : "";
-      }
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
+
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: "audio/mpeg" });
+
+    if (currentReplyAudioUrl) {
+      URL.revokeObjectURL(currentReplyAudioUrl);
+      currentReplyAudioUrl = null;
+    }
+
+    currentReplyAudioUrl = URL.createObjectURL(blob);
+
+    if (!persistentReplyAudio) {
+      persistentReplyAudio = document.createElement("audio");
+      persistentReplyAudio.setAttribute("playsinline", "true");
+      persistentReplyAudio.setAttribute("webkit-playsinline", "true");
+      persistentReplyAudio.preload = "auto";
+      persistentReplyAudio.style.display = "none";
+      document.body.appendChild(persistentReplyAudio);
+    }
+
+    currentReplyAudio = persistentReplyAudio;
+    currentReplyAudio.pause();
+    currentReplyAudio.currentTime = 0;
+    currentReplyAudio.src = currentReplyAudioUrl;
+    currentReplyAudio.playbackRate = 1.18;
+    currentReplyAudio.muted = false;
+    currentReplyAudio.volume = 1;
+
+    updateRayMuteButton();
+
+    currentReplyAudio.onplay = () => {
+      setVoiceState("speaking", "Ray is speaking...");
+    };
+
+    currentReplyAudio.onended = () => {
+      updateRayMuteButton();
+      listeningResumeAt = Date.now() + 450;
+      stopReplyAudio();
+      resumeLiveMicAfterRaySpeech();
+    };
+
+    currentReplyAudio.onerror = () => {
+      updateRayMuteButton();
+      listeningResumeAt = Date.now() + 450;
+      stopReplyAudio();
+      resumeLiveMicAfterRaySpeech();
+    };
+
+    const playPromise = currentReplyAudio.play();
+
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch((err) => {
+        console.error("Reply audio could not play:", err);
+        chatStatusEl.textContent = conversationActive
+          ? "Tap Send Text once, then continue live chat."
+          : "";
+        stopReplyAudio();
+        resumeLiveMicAfterRaySpeech();
+      });
+    }
+  } catch (err) {
+    console.error("Could not decode ElevenLabs audio:", err);
+    resumeLiveMicAfterRaySpeech();
+  }
+}
 
     async function speakReply(reply) {
   if (!reply) return;
 
   if (rayMuted) {
     updateRayMuteButton();
+    resumeLiveMicAfterRaySpeech();
     return;
   }
 
+  const thisSpeechRequestId = ++speechRequestId;
+
   isGeneratingSpeech = true;
-      chatStatusEl.textContent = "Generating Ray's voice...";
+  chatStatusEl.textContent = "Generating Ray's voice...";
 
-      try {
-        const res = await fetch(SPEAK_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: reply })
-        });
+  try {
+    const res = await fetch(SPEAK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: reply })
+    });
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Speak failed");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Speak failed");
 
-        playAudioBase64(data.audioBase64);
-      } catch (err) {
-        console.error(err);
-        chatStatusEl.textContent = conversationActive ? "Open Mic on. Start speaking any time." : "";
-      } finally {
-        isGeneratingSpeech = false;
-      }
+    if (thisSpeechRequestId !== speechRequestId || rayMuted) {
+      return;
     }
+
+    playAudioBase64(data.audioBase64);
+  } catch (err) {
+    console.error(err);
+    chatStatusEl.textContent = conversationActive ? "Open Mic on. Start speaking any time." : "";
+    resumeLiveMicAfterRaySpeech();
+  } finally {
+    if (thisSpeechRequestId === speechRequestId) {
+      isGeneratingSpeech = false;
+    }
+  }
+}
 
     function maybeAutoPlayWelcome(force = false) {
   if (!force && (isPlayingWelcome || currentReplyAudio)) return;
@@ -920,6 +1019,7 @@ updateRayMuteButton();
     stopReplyAudio();
         if (!welcomeAudio) {
           welcomeAudio = new Audio(introUrl);
+welcomeAudio.playsInline = true;
 welcomeAudio.playbackRate = 1.18;
 welcomeAudio.muted = rayMuted;
 updateRayMuteButton();
@@ -954,6 +1054,7 @@ updateRayMuteButton();
           welcomeAudio.pause();
 welcomeAudio.currentTime = 0;
 welcomeAudio.src = introUrl;
+welcomeAudio.playsInline = true;
 welcomeAudio.muted = rayMuted;
 updateRayMuteButton();
         }
@@ -1135,6 +1236,9 @@ updateRayMuteButton();
       const projectName = getSelectedProjectName();
 
       if (!message) return;
+
+      unlockMobileAudio();
+
       if (remainingQuestions <= 0) {
         updateTryRayStatus();
         return;
@@ -1145,7 +1249,7 @@ updateRayMuteButton();
       chatInput.value = "";
       chatStatusEl.textContent = "Ray is thinking...";
       sendChatBtn.disabled = true;
-      beginBtn.disabled = conversationActive;
+      updateOpenMicIndicator();
 
       try {
         const data = await sendTryRayMessage(message, true);
@@ -1167,7 +1271,7 @@ updateRayMuteButton();
         chatStatusEl.textContent = "Chat failed. Please try again.";
       } finally {
         sendChatBtn.disabled = false;
-        beginBtn.disabled = conversationActive;
+        updateOpenMicIndicator();
       }
     }
 
@@ -1298,6 +1402,9 @@ async function toggleConversation() {
 }
     async function beginConversation() {
       if (conversationActive) return;
+
+      unlockMobileAudio();
+
       if (remainingQuestions <= 0) {
         updateTryRayStatus();
         return;
@@ -1309,6 +1416,7 @@ async function toggleConversation() {
         await ensureMicReady();
         conversationActive = true;
         updateOpenMicIndicator();
+        updateRayMuteButton();
         chatStatusEl.textContent = "Open Mic on. Start speaking any time.";
         setVoiceState("listening", "Open Mic on");
 
@@ -1350,13 +1458,65 @@ async function toggleConversation() {
       micSource = null;
     }
 
+    async function pauseLiveMicForRaySpeech() {
+      if (!conversationActive) return;
+
+      if (monitorFrame) {
+        cancelAnimationFrame(monitorFrame);
+        monitorFrame = null;
+      }
+
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        stopSegmentRecorder({ discard: true });
+      }
+
+      if (mediaStream) {
+        mediaStream.getTracks().forEach((track) => track.stop());
+        mediaStream = null;
+      }
+
+      if (audioContext) {
+        try {
+          await audioContext.close();
+        } catch (err) {
+          console.warn("Audio context close failed:", err);
+        }
+        audioContext = null;
+      }
+
+      analyser = null;
+      micSource = null;
+      mediaRecorder = null;
+    }
+
+    async function resumeLiveMicAfterRaySpeech() {
+      if (!conversationActive) return;
+
+      try {
+        await ensureMicReady();
+
+        if (monitorFrame) {
+          cancelAnimationFrame(monitorFrame);
+          monitorFrame = null;
+        }
+
+        chatStatusEl.textContent = "Open Mic on. Start speaking any time.";
+        setVoiceState("listening", "Open Mic on");
+        monitorConversation();
+      } catch (err) {
+        console.error("Could not resume live mic:", err);
+        chatStatusEl.textContent = "Microphone access was blocked or unavailable.";
+        setVoiceState("idle", "");
+      }
+    }
+
     async function sendVoiceBlob(blob) {
       const formData = new FormData();
       formData.append("audio", blob, "voice.webm");
       formData.append("userId", getTryRayUserId());
 
       sendChatBtn.disabled = true;
-      beginBtn.disabled = conversationActive;
+      updateOpenMicIndicator();
 
       try {
         const res = await fetch(TRY_RAY_VOICE_URL, {
@@ -1388,8 +1548,22 @@ async function toggleConversation() {
 
         if (data.reply) {
           addChatMessage("assistant", data.reply);
-          chatStatusEl.textContent = "";
-          speakReply(data.reply);
+
+          if (conversationActive && !rayMuted) {
+            chatStatusEl.textContent = "Ray is responding...";
+            await pauseLiveMicForRaySpeech();
+          }
+
+          if (rayMuted) {
+            chatStatusEl.textContent = conversationActive
+              ? "Open Mic on. Ray voice is muted."
+              : "";
+            if (conversationActive) {
+              setVoiceState("listening", "Open Mic on");
+            }
+          } else {
+            speakReply(data.reply);
+          }
         } else {
           chatStatusEl.textContent = conversationActive ? "Open Mic on. Start speaking any time." : "";
         }
@@ -1398,7 +1572,7 @@ async function toggleConversation() {
         chatStatusEl.textContent = "Voice chat failed. Please try again.";
       } finally {
         sendChatBtn.disabled = false;
-        beginBtn.disabled = conversationActive;
+        updateOpenMicIndicator();
       }
     }
 
@@ -1436,9 +1610,20 @@ async function toggleConversation() {
       statusEl.innerHTML = `This feature is only available with <a href="https://www.projectpilot.ai/pricing-plans/list" target="_blank" rel="noopener noreferrer" style="color:#38bdf8; text-decoration:underline;">Ray Pro</a>.`;
     });
 
-    replayWelcomeBtn.addEventListener("click", replayWelcome);
-    beginBtn.addEventListener("click", toggleConversation);
-    pauseRayBtn.addEventListener("click", togglePauseRay);
+    replayWelcomeBtn.addEventListener("click", () => {
+      unlockMobileAudio();
+      replayWelcome();
+    });
+
+    beginBtn.addEventListener("click", () => {
+      unlockMobileAudio();
+      toggleConversation();
+    });
+
+    pauseRayBtn.addEventListener("click", () => {
+      unlockMobileAudio();
+      togglePauseRay();
+    });
     stopConversationBtn.addEventListener("click", stopConversation);
     sendChatBtn.addEventListener("click", sendChatMessage);
     clearChatBtn.addEventListener("click", clearChatHistory);
