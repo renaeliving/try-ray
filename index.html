@@ -662,7 +662,7 @@ let speechRequestId = 0;
     let listeningResumeAt = 0;
     let remainingQuestions = TRY_RAY_LIMIT;
 
-    const VOLUME_THRESHOLD = 0.035;
+    const VOLUME_THRESHOLD = 0.018;
     const SILENCE_MS = 1500;
     const MIN_AUDIO_BYTES = 6000;
 
@@ -1276,7 +1276,12 @@ updateRayMuteButton();
     }
 
     async function ensureMicReady() {
-      if (mediaStream && analyser && audioContext) return;
+      if (mediaStream && analyser && audioContext) {
+        if (audioContext.state === "suspended") {
+          await audioContext.resume();
+        }
+        return;
+      }
 
       mediaStream = await navigator.mediaDevices.getUserMedia({
         audio:{
@@ -1291,7 +1296,13 @@ updateRayMuteButton();
         ? "audio/webm;codecs=opus"
         : (MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "");
 
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      audioContext = new AudioContextClass({ latencyHint: "interactive" });
+
+      if (audioContext.state === "suspended") {
+        await audioContext.resume();
+      }
+
       micSource = audioContext.createMediaStreamSource(mediaStream);
       analyser = audioContext.createAnalyser();
       analyser.fftSize = 2048;
